@@ -1,0 +1,37 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "_notebooks/main.ipynb"
+      - "_notebooks/demo.ipynb"
+      - ".github/workflows/deploy.yml"
+jobs:
+  build-and-deploy-notebooks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9.7]
+    steps:
+      - uses: actions/checkout@v2
+      # Setup Python
+      - name: Setup Python 3.9.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9.7"
+          cache: "pip"
+      # Install dependencies
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+      # Convert notebooks to HTML
+      - name: convert all notebook to HTML
+        run: jupyter nbconvert _notebooks/*.ipynb --to html --output-dir=_html --HTMLExporter.theme=dark
+      - name: process index and demo html file
+        run: chmod +x utils/process_html.sh; ./utils/process_html.sh
+      # Deploy HTML output to gh-pages branch
+      - name: Deploy on GitHub pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _html
